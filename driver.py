@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[28]:
 
 
 import pandas as pd
@@ -19,10 +19,10 @@ from sklearn.linear_model import LogisticRegression
 import collections
 
 
-# In[2]:
+# In[66]:
 
 
-def compare_models(data, dimension_red_model):
+def compare_models(data):
     # train test split
     train, test = train_test_split(data, test_size=0.3)
     # get targets out
@@ -31,35 +31,35 @@ def compare_models(data, dimension_red_model):
     test_B = test["TARGET_B"]
     test_D = test["TARGET_D"]
     train.drop(columns = ["TARGET_D","TARGET_B"], inplace = True)
-    
+    test.drop(columns = ["TARGET_D","TARGET_B"], inplace = True)
     # we need to resample the train data to balance it out
     sampler = RandomOverSampler(random_state=50)
-    x_res, y_res = over_sampler.fit_resample(train, train_B)
+    x_res, y_res = sampler.fit_resample(train, train_B)
     print("oversampled to "+str(x_res.shape[0])+"data points.")
     
     # if dimension_red_model is used, use it on test
-    if(dimension_red_model != None):
-        test = dimension_red_model.fit_transform(test)
+    #if(dimension_red_model != None):
+    #    test = dimension_red_model.fit_transform(test)
     
     # run the model
-    acc_log, fp_rate_log, fn_rate_log, profit_log = run_regression(x_res, y_res, test)
+    acc_log, fp_rate_log, fn_rate_log, profit_log = run_regression(x_res, y_res, test, test_B, test_D)
     print("logistic regression accuracy = "+str(acc_log))
     print("logistic regression false positive rate = "+str(fp_rate_log))
     print("logistic regression false negative rate = "+str(fn_rate_log))    
     print("logistic regression profit = "+str(profit_log))
     
     # run decision tree
-    acc_tree, fp_rate_tree, fn_rate_tree, profit_tree = run_decision_tree(x_res, y_res, test)
+    acc_tree, fp_rate_tree, fn_rate_tree, profit_tree = run_decision_tree(x_res, y_res, test, test_B, test_D)
     print("decision tree accuracy = "+str(acc_tree))
     print("decision tree false positive rate = "+str(fp_rate_tree))
     print("decision tree false negative rate = "+str(fn_rate_tree))    
     print("decision tree profit = "+str(profit_tree))
 
 
-# In[3]:
+# In[48]:
 
 
-def run_regression(x_res, y_res, test):
+def run_regression(x_res, y_res, test, test_B, test_D):
     # train the model
     clf = DecisionTreeClassifier(max_depth = 20)
     clf = clf.fit(x_res, y_res)
@@ -70,10 +70,10 @@ def run_regression(x_res, y_res, test):
     return get_acc(y_pred, test_B, test_D, 0.68)
 
 
-# In[4]:
+# In[49]:
 
 
-def run_decision_tree(x_res, y_res, test):
+def run_decision_tree(x_res, y_res, test, test_B, test_D):
     # train the model
     clf = LogisticRegression(max_iter = 100, solver = "liblinear", verbose = 1)
     clf = clf.fit(x_res, y_res)
@@ -84,26 +84,26 @@ def run_decision_tree(x_res, y_res, test):
     return get_acc(y_pred, test_B, test_D, 0.68)
 
 
-# In[5]:
+# In[64]:
 
 
 def get_acc(y_pred, y_actual, y_donate, mail_cost):
-    df = pd.concat([y_pred, y_actual, y_donate], axis = 1)
+    df = pd.concat([pd.Series(y_pred), pd.Series(y_actual), pd.Series(y_donate)], axis = 1)
     df.columns = ["y_pred", "y_actual", "y_donate"]
     
     #get accuracy
-    accuracy = df[(df['y_pred'] == df['y_actual'])].shape[0]
+    accuracy = df[(df['y_pred'] == df['y_actual'])].shape[0] / y_actual.shape[0]
     # get false positive rate
-    fp_rate = df[(df['y_pred'] == 1) & (df['y_actual'] == 0)].shape[0]
+    fp_rate = df[(df['y_pred'] == 1) & (df['y_actual'] == 0)].shape[0] / y_actual.shape[0]
     # get false negative rate
-    fn_rate = df[(df['y_pred'] == 0) & (df['y_actual'] == 1)].shape[0]
+    fn_rate = df[(df['y_pred'] == 0) & (df['y_actual'] == 1)].shape[0] / y_actual.shape[0]
     # get total profit 
     profit = df[(df['y_pred'] == 1) & (df['y_actual'] == 1)]["y_donate"].sum() - df[(df['y_pred'] == 1)].shape[0]*mail_cost
     
     return accuracy, fp_rate, fn_rate, profit
 
 
-# In[25]:
+# In[33]:
 
 
 def preprocessing_data(df): 
@@ -206,7 +206,7 @@ def preprocessing_data(df):
         df[key].replace(mapping, inplace=True)
     ####Time Frame and Date Fields#########
     end_date = 9706
-    for time_key in ['MAXADATE', 'MINRDATE', 'MAXRDATE', 'LASTDATE', 'FISTDATE', 'NEXTDATE', 'ODATEDW']: # 
+    for time_key in ['MAXADATE', 'MINRDATE', 'MAXRDATE', 'LASTDATE', 'FISTDATE', 'NEXTDATE', 'ODATEDW']: 
         end_date = pd.to_datetime(end_date, format='%y%m', exact=True)
         df.loc[df[time_key] == 0, time_key] = df[time_key].mode()
         start_date = temp_date_attr = pd.to_datetime(df[time_key], format='%y%m', exact=True)
@@ -216,7 +216,7 @@ def preprocessing_data(df):
     return df
 
 
-# In[7]:
+# In[57]:
 
 
 def pca_compress(data, var=0.95):
@@ -227,11 +227,10 @@ def pca_compress(data, var=0.95):
     d = np.argmax(cumsum >= var) + 1
     pca = PCA(n_components=d)
     output = pca.fit_transform(data)
-    print("pca done")
     return output, pca
 
 
-# In[26]:
+# In[67]:
 
 
 pd.get_option("display.max_columns")
@@ -249,7 +248,28 @@ data_trimmed = preprocessing_data(df[selected_features])
 targets = deepcopy(data_trimmed[['TARGET_D', 'TARGET_B']])
 data_trimmed.drop(columns = ["TARGET_D","TARGET_B"], inplace = True)
 #pd.get_dummies(data_trimmed).shape
-data, pca_model = pca_compress(pd.get_dummies(data_trimmed))
-data = pd.concat([data,targets], axis = 1)
+
+#data, pca_model = pca_compress(pd.get_dummies(data_trimmed))
+#data = pd.concat([pd.DataFrame(data),targets], axis = 1)
+#compare_models(data, pca_model)
+data = pd.concat([data_trimmed,targets], axis = 1)
 compare_models(data)
+
+
+# In[36]:
+
+
+data_trimmed
+
+
+# In[42]:
+
+
+pd.DataFrame(data)
+
+
+# In[ ]:
+
+
+
 
