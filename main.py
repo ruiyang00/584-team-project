@@ -46,7 +46,7 @@ def compare_models(data):
     print("decision tree false positive rate = "+str(fp_rate_tree))
     print("decision tree false negative rate = "+str(fn_rate_tree))    
     print("decision tree profit = "+str(profit_tree))
-def run_regression(x_res, y_res, test, test_B, test_D):
+def run_decision_tree(x_res, y_res, test, test_B, test_D):
     # train the model
     clf = DecisionTreeClassifier(max_depth = 20)
     clf = clf.fit(x_res, y_res)
@@ -55,9 +55,9 @@ def run_regression(x_res, y_res, test, test_B, test_D):
     y_pred = clf.predict(test)
     
     return get_acc(y_pred, test_B, test_D, 0.68)
-def run_decision_tree(x_res, y_res, test, test_B, test_D):
+def run_regression(x_res, y_res, test, test_B, test_D):
     # train the model
-    clf = LogisticRegression(max_iter = 100, solver = "liblinear", verbose = 1)
+    clf = LogisticRegression(max_iter = 100, solver = "liblinear", verbose = 0)
     clf = clf.fit(x_res, y_res)
     
     # test on the test set
@@ -142,10 +142,10 @@ def pca_compress(data, var=0.95):
     output = pca.fit_transform(data)
     return output, pca
 
-df = pd.read_csv("cup98lrn.txt", sep=',', error_bad_lines = False, low_memory = False, skip_blank_lines = True)
-data_trimmed = preprocessing_data(df)
-data_trimmed.to_csv('data_trimmed.csv', index = False)
-# data_trimmed = pd.read_csv("data_trimmed.csv", sep=',', error_bad_lines = False, low_memory = False, skip_blank_lines = True)
+# df = pd.read_csv("cup98lrn.txt", sep=',', error_bad_lines = False, low_memory = False, skip_blank_lines = True)
+# data_trimmed = preprocessing_data(df)
+# data_trimmed.to_csv('data_trimmed.csv', index = False)
+data_trimmed = pd.read_csv("data_trimmed.csv", sep=',', error_bad_lines = False, low_memory = False, skip_blank_lines = True)
 targets = deepcopy(data_trimmed[['TARGET_D', 'TARGET_B']])
 
 test = SelectKBest(score_func=f_classif, k=100)

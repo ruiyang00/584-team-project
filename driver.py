@@ -17,7 +17,7 @@ from imblearn.over_sampling import RandomOverSampler
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
 import collections
-
+from sklearn.feature_selection import SelectKBest, f_classif
 
 # In[66]:
 
@@ -233,18 +233,20 @@ def pca_compress(data, var=0.95):
 # In[67]:
 
 
-pd.get_option("display.max_columns")
-df = pd.read_csv("cup98lrn.txt", sep=',', error_bad_lines = False, low_memory = False, skip_blank_lines = True)
 
-selected_features = [
-    'TARGET_D', 'TARGET_B',
-    'OSOURCE', 'ZIP', 'PVASTATE', 'DOB', 'NOEXCH', 'RECP3', 'RECINHSE', 'RECPGVG', 'RECSWEEP', 'DOMAIN', 'CLUSTER', 'AGE', 'HOMEOWNR', 'NUMCHLD', 'INCOME', 'GENDER', 'WEALTH1', 'HIT', 'PUBNEWFN', 'MALEMILI', 'MALEVET', 'VIETVETS', 'WWIIVETS', 'LOCALGOV', 'STATEGOV', 'FEDGOV', 'WEALTH2', 'COLLECT1', 'VETERANS', 'BIBLE', 'CATLG', 'HOMEE', 'PETS', 'CDPLAY', 'STEREO', 'PCOWNERS', 'PHOTO', 'CRAFTS', 'FISHER', 'GARDENIN', 'BOATS', 'WALKER', 'KIDSTUFF', 'CARDS', 'PLATES', 'LIFESRC', 'ETH3', 'ETH8', 'ETH10', 'ETH11', 'ETH15', 'OEDC1', 'OEDC2', 'OEDC3', 'CARDPROM', 'MAXADATE', 'NUMPROM', 'CARDPM12', 'NUMPRM12', 'RAMNTALL', 'NGIFTALL', 'CARDGIFT', 'MINRAMNT', 'MINRDATE', 'MAXRAMNT', 'MAXRDATE', 'LASTGIFT', 'LASTDATE', 'FISTDATE', 'NEXTDATE', 
-    'TIMELAG', 'AVGGIFT', 'RFA_2R', 'RFA_2F', 'RFA_2A', 'MDMAUD_R', 'MDMAUD_F', 'MDMAUD_A', 'CLUSTER2', 'GEOCODE2', 'ODATEDW']
+# selected_features = [
+    # 'TARGET_D', 'TARGET_B',
+    # 'OSOURCE', 'ZIP', 'PVASTATE', 'DOB', 'NOEXCH', 'RECP3', 'RECINHSE', 'RECPGVG', 'RECSWEEP', 'DOMAIN', 'CLUSTER', 'AGE', 'HOMEOWNR', 'NUMCHLD', 'INCOME', 'GENDER', 'WEALTH1', 'HIT', 'PUBNEWFN', 'MALEMILI', 'MALEVET', 'VIETVETS', 'WWIIVETS', 'LOCALGOV', 'STATEGOV', 'FEDGOV', 'WEALTH2', 'COLLECT1', 'VETERANS', 'BIBLE', 'CATLG', 'HOMEE', 'PETS', 'CDPLAY', 'STEREO', 'PCOWNERS', 'PHOTO', 'CRAFTS', 'FISHER', 'GARDENIN', 'BOATS', 'WALKER', 'KIDSTUFF', 'CARDS', 'PLATES', 'LIFESRC', 'ETH3', 'ETH8', 'ETH10', 'ETH11', 'ETH15', 'OEDC1', 'OEDC2', 'OEDC3', 'CARDPROM', 'MAXADATE', 'NUMPROM', 'CARDPM12', 'NUMPRM12', 'RAMNTALL', 'NGIFTALL', 'CARDGIFT', 'MINRAMNT', 'MINRDATE', 'MAXRAMNT', 'MAXRDATE', 'LASTGIFT', 'LASTDATE', 'FISTDATE', 'NEXTDATE', 
+    # 'TIMELAG', 'AVGGIFT', 'RFA_2R', 'RFA_2F', 'RFA_2A', 'MDMAUD_R', 'MDMAUD_F', 'MDMAUD_A', 'CLUSTER2', 'GEOCODE2', 'ODATEDW']
 
 # print(df[selected_features])
 # df[selected_features].to_csv('selected_features.csv', index=False)
 
-data_trimmed = preprocessing_data(df[selected_features])
+pd.get_option("display.max_columns")
+df = pd.read_csv("cup98lrn.txt", sep=',', error_bad_lines = False, low_memory = False, skip_blank_lines = True)
+data_trimmed = preprocessing_data(df) #df[selected_features]
+data_trimmed.to_csv('data_trimmed.csv')
+data_trimmed = pd.read_csv('data_trimmed.csv')
 targets = deepcopy(data_trimmed[['TARGET_D', 'TARGET_B']])
 data_trimmed.drop(columns = ["TARGET_D","TARGET_B"], inplace = True)
 #pd.get_dummies(data_trimmed).shape
@@ -252,7 +254,16 @@ data_trimmed.drop(columns = ["TARGET_D","TARGET_B"], inplace = True)
 #data, pca_model = pca_compress(pd.get_dummies(data_trimmed))
 #data = pd.concat([pd.DataFrame(data),targets], axis = 1)
 #compare_models(data, pca_model)
-data = pd.concat([data_trimmed,targets], axis = 1)
+test = SelectKBest(score_func=f_classif, k=100)
+fit = test.fit(data_trimmed, targets["TARGET_B"])
+# summarize scores
+
+print(fit.scores_)
+features = fit.transform(data_trimmed)
+
+data_selected = pd.DataFrame(features)
+
+data = pd.concat([data_selected,targets], axis = 1)
 compare_models(data)
 
 
